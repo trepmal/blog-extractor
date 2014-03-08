@@ -1,7 +1,12 @@
 Blog Extractor
 ==============
 
-Extract a single blog from a multisite network
+
+Warning!
+--------
+This has had limited testing so far. Would love feedback from those willing to test this out. If you blow something up, please don't grab your pitchfork.
+
+Extract a single blog from a multisite network. (Does not delete original site)
 
 ```
 wp extract blog <id>
