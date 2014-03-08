@@ -18,7 +18,7 @@ Creates an tar file in the WordPress root directory. Tar file contains:
 
  * sql dump of site, including user tables
  * wp-content/
-  * uploads/site/{id}
+  * uploads/sites/{id}
   * plugins/{active-plugins}
   * plugins/{network-activated plugins} (will need to be reactivated)
   * mu-plugins
