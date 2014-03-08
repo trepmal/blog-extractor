@@ -22,7 +22,7 @@ In setting up the standalone site, a few things need to be done:
  * in `wp-config.php` change the database prefix to match the ID'd prefix from the multisite (this is given in the success message)
  * after the tables are imported
   * run the search-replace command to change the URLs
-  * move the uploads from the /sites/<id>/ directory to the main /uploads/ folder
+  * move the uploads from the /sites/{id}/ directory to the main /uploads/ folder
   * run search-replace again to change those affected URLs
 
 
