@@ -12,15 +12,18 @@ Creates an tar file in the WordPress root directory. Tar file contains:
  * sql dump of site, including user tables
  * uploads directory
  * active plugins
- * network-activated plugins
+ * network-activated plugins (will need to be reactivated)
  * mu-plugins
  * dropins
  * active theme (including parent if needed)
 
-In setting up the standalone site, two things need to be done:
+In setting up the standalone site, a few things need to be done:
 
- * change the wp database prefix to match the ID'd prefix from the multisite (this is given in the success message)
- * after the tables are imported into the new database run the search-replace command to change the URLs
+ * in `wp-config.php` change the database prefix to match the ID'd prefix from the multisite (this is given in the success message)
+ * after the tables are imported
+  * run the search-replace command to change the URLs
+  * move the uploads from the /sites/<id>/ directory to the main /uploads/ folder
+  * run search-replace again to change those affected URLs
 
 
 ```
