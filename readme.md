@@ -2,9 +2,11 @@ Blog Extractor
 ==============
 
 
-Warning!
---------
-This has had limited testing so far. Would love feedback from those willing to test this out. If you blow something up, please don't grab your pitchfork.
+#### Warning!
+
+This has had limited testing so far and there may be bugs. Would love feedback from those willing to test this out. *There should be no risk to the multisite. In fact, no changes are made to the multisite. But, you know, gremlins.*
+
+---
 
 Extract a single blog from a multisite network. (Does not delete original site)
 
