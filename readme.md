@@ -17,12 +17,13 @@ wp extract blog <id>
 Creates an tar file in the WordPress root directory. Tar file contains:
 
  * sql dump of site, including user tables
- * uploads directory
- * active plugins
- * network-activated plugins (will need to be reactivated)
- * mu-plugins
- * dropins
- * active theme (including parent if needed)
+ * wp-content/
+  * uploads/site/{id}
+  * plugins/{active-plugins}
+  * plugins/{network-activated plugins} (will need to be reactivated)
+  * mu-plugins
+  * themes/{active theme} (including parent if needed)
+  * dropins (such as object-cache.php)
 
 In setting up the standalone site, a few things need to be done:
 
