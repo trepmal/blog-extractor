@@ -135,8 +135,7 @@ class Blog_Extract extends WP_CLI_Command {
 		$export_dirs = array_merge( $export_dirs, $networkplugins );
 
 		// mu plugins
-		$muplugins = wp_get_mu_plugins();
-		$export_dirs = array_merge( $export_dirs, $muplugins );
+		$export_dirs[] = ABSPATH . MUPLUGINDIR;
 
 		// mu plugins
 		$dropins = array_keys( get_dropins() );
