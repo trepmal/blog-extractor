@@ -50,10 +50,13 @@ class Blog_Extract extends WP_CLI_Command {
 		// print_r( $blog_tables );
 
 		$users = wp_list_pluck( get_users(), 'ID' );
+		$super_admin_ids = array();
 		foreach( get_super_admins() as $username ) {
-			$users[] = get_user_by( 'login', $username )->ID;
+			$super_admin_ids[] = get_user_by( 'login', $username )->ID;
 		}
-		$users = array_unique( $users );
+
+		$supes = array_diff( $super_admin_ids, $users );
+		$users = array_unique( array_merge( $users, $super_admin_ids ) );
 
 		$userlist = implode( ',', $users );
 
@@ -79,6 +82,22 @@ class Blog_Extract extends WP_CLI_Command {
 				WP_CLI::line( 'copying main usermeta table' );
 			}
 			$wpdb->query( "insert into {$tmp_usermeta} select * from {$wpdb->usermeta} where user_id IN ({$userlist})" );
+		}
+
+		// for the super admins that were not specifically added to the blog on the network, give administrator role
+		foreach( $supes as $sid ) {
+			$wpdb->insert( $tmp_usermeta,
+				array(
+					'user_id' => $sid,
+					'meta_key' => $wpdb->prefix .'capabilities',
+					'meta_value' => serialize( array( 'administrator' => true ) ),
+				),
+				array(
+					'%d',
+					'%s',
+					'%s',
+				)
+			);
 		}
 
 		if ( $v ) {
