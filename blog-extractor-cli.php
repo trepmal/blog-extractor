@@ -35,7 +35,7 @@ class Blog_Extract extends WP_CLI_Command {
 
 		global $wpdb;
 
-		$blog_tables   = $wpdb->tables('blog');
+		$blog_tables = $wpdb->tables('blog');
 
 		/************************************\
 		                             DATABASE
@@ -57,7 +57,6 @@ class Blog_Extract extends WP_CLI_Command {
 
 		$userlist = implode( ',', $users );
 
-
 		if ( $v ) {
 			WP_CLI::line( 'Begin copying user tables' );
 		}
@@ -70,9 +69,8 @@ class Blog_Extract extends WP_CLI_Command {
 			if ( $v ) {
 				WP_CLI::line( 'copying main users table' );
 			}
-			$wpdb->query( "insert into {$tmp_users} select * from {$wpdb->users}" );
+			$wpdb->query( "insert into {$tmp_users} select * from {$wpdb->users} where ID IN ({$userlist})" );
 		}
-		$wpdb->query( "delete from {$tmp_users} where ID NOT IN ({$userlist})" );
 
 		$wpdb->query( "create table if not exists {$tmp_usermeta} like {$wpdb->usermeta}" );
 		$check = $wpdb->get_col( "select * from {$tmp_usermeta}" );
@@ -80,9 +78,8 @@ class Blog_Extract extends WP_CLI_Command {
 			if ( $v ) {
 				WP_CLI::line( 'copying main usermeta table' );
 			}
-			$wpdb->query( "insert into {$tmp_usermeta} select * from {$wpdb->usermeta}" );
+			$wpdb->query( "insert into {$tmp_usermeta} select * from {$wpdb->usermeta} where user_id IN ({$userlist})" );
 		}
-		$wpdb->query( "delete from {$tmp_usermeta} where user_id NOT IN ({$userlist})" );
 
 		if ( $v ) {
 			WP_CLI::line( 'Begin exporting tables' );
