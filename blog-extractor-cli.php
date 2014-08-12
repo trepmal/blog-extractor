@@ -105,7 +105,7 @@ class Blog_Extract extends WP_CLI_Command {
 		}
 		$tablelist = implode( ' ', $blog_tables );
 		$sql_file = 'database.sql';
-		shell_exec( "mysqldump -u ". DB_USER ." -p". DB_PASSWORD ." ". DB_NAME ." {$tablelist} > {$sql_file}" );
+		shell_exec( "mysqldump -h " . DB_HOST . " -u ". DB_USER ." -p". DB_PASSWORD ." ". DB_NAME ." {$tablelist} > {$sql_file}" );
 
 		if ( file_exists( ABSPATH . $sql_file ) ) {
 			if ( ( $filesize = filesize( ABSPATH . $sql_file ) ) > 0 ) {
