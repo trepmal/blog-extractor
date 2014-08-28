@@ -194,7 +194,7 @@ class Blog_Extract extends WP_CLI_Command {
 				WP_CLI::success( "$export_file created! ($filesize)" );
 
 				$prefix = WP_CLI::colorize( "%P{$wpdb->prefix}%n" );
-				WP_CLI::line( 'In your new install, set the database prefix to '. $prefix );
+				WP_CLI::line( 'In your new install in wp-config.php, set the $table_prefix to '. $prefix );
 				WP_CLI::line( 'You\'ll also need to do a search-replace for the url change' );
 
 				$old_url = untrailingslashit( $details->domain. $details->path );
