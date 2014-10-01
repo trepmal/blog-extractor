@@ -6,6 +6,10 @@ Blog Extractor
 
 This has had limited testing so far and there may be bugs. Would love feedback from those willing to test this out. *There should be no risk to the multisite. In fact, no changes are made to the multisite. But, you know, gremlins.*
 
+#### Installation
+
+Install and activate as a normal plugin. Then run `wp help extract` to confirm the command availability.
+
 ---
 
 Extract a single blog from a multisite network. (Does not delete original site)
