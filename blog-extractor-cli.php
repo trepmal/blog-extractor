@@ -60,6 +60,9 @@ class Blog_Extract extends WP_CLI_Command {
 			$tmp_users = "{$wpdb->prefix}users";
 			$tmp_usermeta = "{$wpdb->prefix}usermeta";
 		}
+
+		$blog_1_case = ! empty( $rename_tables ); // just a nice flag to use later
+
 		$blog_tables['users'] = $tmp_users;
 		$blog_tables['usermeta'] = $tmp_usermeta;
 
@@ -136,7 +139,7 @@ class Blog_Extract extends WP_CLI_Command {
 		if ( file_exists( ABSPATH . $sql_file ) ) {
 			if ( ( $filesize = filesize( ABSPATH . $sql_file ) ) > 0 ) {
 				// Add statements to rename any tables we have in the $rename_tables array
-				if ( ! empty( $rename_tables ) ) {
+				if ( $blog_1_case ) {
 					$sql_fh = fopen( ABSPATH . $sql_file, 'a' );
 					fwrite( $sql_fh, "\n" );
 					foreach ( $rename_tables as $oldname => $newname ) {
@@ -210,6 +213,23 @@ class Blog_Extract extends WP_CLI_Command {
 		// @debug let's take a look
 		// print_r( $exports );
 
+		// work out any directories that should be excluded from the archive
+		$exclude = '';
+
+		if ( $blog_1_case ) {
+			// if we renamed, we're on site ID 1, which also means uploads aren't in /sites/
+			$exclude_exports[] = str_replace( ABSPATH, '', $upload_dir['basedir'] ) . '/sites';
+		}
+
+		if ( isset( $exclude_exports ) ) {
+			foreach( $exclude_exports as $ee ) {
+				$exclude .= " --exclude=$ee ";
+			}
+		}
+
+		// @debug let's take a look
+		// print_r( $exclude_exports );
+
 		// @todo make this user-set
 		$export_file = "archive-{$blogid}.tar.gz";
 
@@ -219,7 +239,7 @@ class Blog_Extract extends WP_CLI_Command {
 		if ( $v ) {
 			WP_CLI::line( 'Begin archiving files' );
 		}
-		shell_exec( "cd {$abspath}; tar -cvf {$export_file} {$exports}" );
+		shell_exec( "cd {$abspath}; tar -cvf {$export_file} {$exports} {$exclude}" );
 
 		if ( file_exists( ABSPATH . $export_file ) ) {
 			if ( ( $filesize = filesize( ABSPATH . $export_file ) ) > 0 ) {
@@ -238,12 +258,16 @@ class Blog_Extract extends WP_CLI_Command {
 
 				WP_CLI::line( "# update URLs" );
 				WP_CLI::line( "wp search-replace {$old_url} NEWURL" );
-				WP_CLI::line( "# move the uploads to the typical directory" );
-				WP_CLI::line( "mv wp-content/uploads/sites/{$blogid}/* wp-content/uploads/" );
-				WP_CLI::line( "# remove the old directory" );
-				WP_CLI::line( "rm -rf wp-content/uploads/sites/" );
-				WP_CLI::line( "# update database" );
-				WP_CLI::line( "wp search-replace wp-content/uploads/sites/{$blogid}/ wp-content/uploads/" );
+				if ( ! $blog_1_case ) {
+					// again, we're on ID 1, so uploads aren't in sites, so no need for these find-replace recommendations
+					$rel_upl = str_replace( ABSPATH, '', $upload_dir['basedir'] );
+					WP_CLI::line( "# move the uploads to the typical directory" );
+					WP_CLI::line( "mv {$rel_upl}/* wp-content/uploads/" );
+					WP_CLI::line( "# remove the old directory" );
+					WP_CLI::line( "rm -rf wp-content/uploads/sites/" );
+					WP_CLI::line( "# update database" );
+					WP_CLI::line( "wp search-replace {$rel_upl}/ wp-content/uploads/" );
+				}
 
 				WP_CLI::line( '=========================================' );
 
