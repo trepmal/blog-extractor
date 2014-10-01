@@ -40,9 +40,26 @@ class Blog_Extract extends WP_CLI_Command {
 		/************************************\
 		                             DATABASE
 		\************************************/
+		 /*
+		  * We use the $rename_tables array to store any tables that will need to renamed upon import to the new database.
+		  */
+		$rename_tables = array();
 
-		$tmp_users = "{$wpdb->prefix}users";
-		$tmp_usermeta = "{$wpdb->prefix}usermeta";
+		/*
+		 * For blog ID 1, we have to use a different temp user table name, since $wpdb->prefix doesn't have a number
+		 * appended and we don't want to effect the global user tables.
+		 */
+		if ( 1 == $blogid ) {
+			$tmp_users = "{$wpdb->prefix}temp_users";
+			$tmp_usermeta = "{$wpdb->prefix}temp_usermeta";
+
+			// Add these to the rename tables array, so we can rename them when importing to the new database
+			$rename_tables[ $tmp_users ] = "{$wpdb->prefix}users";
+			$rename_tables[ $tmp_usermeta ] = "{$wpdb->prefix}usermeta";
+		} else {
+			$tmp_users = "{$wpdb->prefix}users";
+			$tmp_usermeta = "{$wpdb->prefix}usermeta";
+		}
 		$blog_tables['users'] = $tmp_users;
 		$blog_tables['usermeta'] = $tmp_usermeta;
 
@@ -118,6 +135,16 @@ class Blog_Extract extends WP_CLI_Command {
 
 		if ( file_exists( ABSPATH . $sql_file ) ) {
 			if ( ( $filesize = filesize( ABSPATH . $sql_file ) ) > 0 ) {
+				// Add statements to rename any tables we have in the $rename_tables array
+				if ( ! empty( $rename_tables ) ) {
+					$sql_fh = fopen( ABSPATH . $sql_file, 'a' );
+					fwrite( $sql_fh, "\n" );
+					foreach ( $rename_tables as $oldname => $newname ) {
+						fwrite( $sql_fh, "RENAME TABLE `{$oldname}` TO `{$newname}`;\n" );
+					}
+					fclose( $sql_fh );
+				}
+
 				$filesize = self::file_size_convert( $filesize );
 				if ( $v ) {
 					WP_CLI::line( 'Database tables exported' );
