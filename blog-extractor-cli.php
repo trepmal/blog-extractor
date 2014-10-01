@@ -43,12 +43,8 @@ class Blog_Extract extends WP_CLI_Command {
 
 		$tmp_users = "{$wpdb->prefix}users";
 		$tmp_usermeta = "{$wpdb->prefix}usermeta";
-		$blog_tables['users'] = $tmp_users;
-		$blog_tables['usermeta'] = $tmp_usermeta;
 
-		// @debug let's take a look
-		// print_r( $blog_tables );
-
+		// compile list of users to keep
 		$users = wp_list_pluck( get_users(), 'ID' );
 		$super_admin_ids = array();
 		foreach( get_super_admins() as $username ) {
@@ -65,13 +61,23 @@ class Blog_Extract extends WP_CLI_Command {
 		}
 
 		/*
-		 * Checks if we are attempting to create a temp table with the same name as the main user table. If so, bail.
-		 * Currently happens if attempting to export blog ID 1, since the DB prefix will not have a number appended.
+		 * On blog ID 1, the tmp table we want to create for users already exists (because no ID in table prefix)
+		 * So give an extra prefix, and flag for a few other special operations
 		 */
+		$table_rename = false; // flag for later
 		if ( $tmp_users == $wpdb->users ) {
-			// OMG run away, FAST before we break something important
-			WP_CLI::error( 'There was an error duplicating user tables' );
+			$table_rename = true; // flag for later
+			$tmp_users_restore = $tmp_users;
+			$tmp_usermeta_restore = $tmp_usermeta;
+			$tmp_users .= '_tmp';
+			$tmp_usermeta .= '_tmp';
 		}
+
+		$blog_tables['users'] = $tmp_users;
+		$blog_tables['usermeta'] = $tmp_usermeta;
+
+		// @debug let's take a look
+		// print_r( $blog_tables );
 
 		// duplicate global user tables
 		// delete unnecessary rows (probably not performant on large data)
@@ -115,7 +121,10 @@ class Blog_Extract extends WP_CLI_Command {
 		$tablelist = implode( ' ', $blog_tables );
 		$sql_file = 'database.sql';
 		shell_exec( "mysqldump -h " . DB_HOST . " -u ". DB_USER ." -p". DB_PASSWORD ." ". DB_NAME ." {$tablelist} > {$sql_file}" );
-
+		if ( $table_rename ) {
+			//if we renamed the users table, include statement to change it back
+			shell_exec( "echo 'RENAME TABLE $tmp_users TO $tmp_users_restore, $tmp_usermeta TO $tmp_usermeta_restore;' >> $sql_file" );
+		}
 		if ( file_exists( ABSPATH . $sql_file ) ) {
 			if ( ( $filesize = filesize( ABSPATH . $sql_file ) ) > 0 ) {
 				$filesize = size_format( $filesize, 2 );
@@ -183,6 +192,22 @@ class Blog_Extract extends WP_CLI_Command {
 		// @debug let's take a look
 		// print_r( $exports );
 
+		$exclude = '';
+
+		if ( $table_rename ) {
+			// if we renamed, we're on site ID 1, which also means uploads aren't in /sites/
+			$exclude_exports[] = str_replace( ABSPATH, '', $upload_dir['basedir'] ) . '/sites';
+		}
+
+		if ( isset( $exclude_exports ) ) {
+			foreach( $exclude_exports as $ee ) {
+				$exclude .= " --exclude=$ee ";
+			}
+		}
+
+		// @debug let's take a look
+		// print_r( $exclude_exports );
+
 		// @todo make this user-set
 		$export_file = "archive-{$blogid}.tar.gz";
 
@@ -192,7 +217,7 @@ class Blog_Extract extends WP_CLI_Command {
 		if ( $v ) {
 			WP_CLI::line( 'Begin archiving files' );
 		}
-		shell_exec( "cd {$abspath}; tar -cvf {$export_file} {$exports}" );
+		shell_exec( "cd {$abspath}; tar -cvf {$export_file} {$exports} {$exclude}" );
 
 		if ( file_exists( ABSPATH . $export_file ) ) {
 			if ( ( $filesize = filesize( ABSPATH . $export_file ) ) > 0 ) {
@@ -211,15 +236,18 @@ class Blog_Extract extends WP_CLI_Command {
 
 				WP_CLI::line( "# update URLs" );
 				WP_CLI::line( "wp search-replace {$old_url} NEWURL" );
-				WP_CLI::line( "# move the uploads to the typical directory" );
-				WP_CLI::line( "mv wp-content/uploads/sites/{$blogid}/* wp-content/uploads/" );
-				WP_CLI::line( "# remove the old directory" );
-				WP_CLI::line( "rm -rf wp-content/uploads/sites/" );
-				WP_CLI::line( "# update database" );
-				WP_CLI::line( "wp search-replace wp-content/uploads/sites/{$blogid}/ wp-content/uploads/" );
+				if ( ! $table_rename ) {
+					// again, we're on ID 1, so uploads aren't in sites, so no need for these find-replace recommendations
+					$rel_upl = str_replace( ABSPATH, '', $upload_dir['basedir'] );
+					WP_CLI::line( "# move the uploads to the typical directory" );
+					WP_CLI::line( "mv {$rel_upl}/* wp-content/uploads/" );
+					WP_CLI::line( "# remove the old directory" );
+					WP_CLI::line( "rm -rf wp-content/uploads/sites/" );
+					WP_CLI::line( "# update database" );
+					WP_CLI::line( "wp search-replace {$rel_upl}/ wp-content/uploads/" );
+				}
 
 				WP_CLI::line( '=========================================' );
-
 
 			} else {
 				unlink( ABSPATH . $export_file );
