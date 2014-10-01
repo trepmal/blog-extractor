@@ -64,6 +64,15 @@ class Blog_Extract extends WP_CLI_Command {
 			WP_CLI::line( 'Begin copying user tables' );
 		}
 
+		/*
+		 * Checks if we are attempting to create a temp table with the same name as the main user table. If so, bail.
+		 * Currently happens if attempting to export blog ID 1, since the DB prefix will not have a number appended.
+		 */
+		if ( $tmp_users == $wpdb->users ) {
+			// OMG run away, FAST before we break something important
+			WP_CLI::error( 'There was an error duplicating user tables' );
+		}
+
 		// duplicate global user tables
 		// delete unnecessary rows (probably not performant on large data)
 		$wpdb->query( "create table if not exists {$tmp_users} like {$wpdb->users}" );
