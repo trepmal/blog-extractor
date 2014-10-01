@@ -118,7 +118,7 @@ class Blog_Extract extends WP_CLI_Command {
 
 		if ( file_exists( ABSPATH . $sql_file ) ) {
 			if ( ( $filesize = filesize( ABSPATH . $sql_file ) ) > 0 ) {
-				$filesize = self::file_size_convert( $filesize );
+				$filesize = size_format( $filesize, 2 );
 				if ( $v ) {
 					WP_CLI::line( 'Database tables exported' );
 				}
@@ -199,7 +199,7 @@ class Blog_Extract extends WP_CLI_Command {
 				// sql dump was archived, remove regular file
 				unlink( ABSPATH . $sql_file );
 
-				$filesize = self::file_size_convert( $filesize );
+				$filesize = size_format( $filesize, 2 );
 				WP_CLI::success( "$export_file created! ($filesize)" );
 
 				$prefix = WP_CLI::colorize( "%P{$wpdb->prefix}%n" );
@@ -231,26 +231,6 @@ class Blog_Extract extends WP_CLI_Command {
 
 	}
 
-	// helper to convert filesize
-	private function file_size_convert( $bytes ) {
-		$bytes = floatval( $bytes );
-		$arBytes = array(
-			array( 'unit' => 'TB', 'value' => pow(1024, 4) ),
-			array( 'unit' => 'GB', 'value' => pow(1024, 3) ),
-			array( 'unit' => 'MB', 'value' => pow(1024, 2) ),
-			array( 'unit' => 'KB', 'value' => 1024 ),
-			array( 'unit' => 'B', 'value' => 1 ),
-		);
-
-		foreach ( $arBytes as $arItem ) {
-			if( $bytes >= $arItem['value'] ) {
-				$result = $bytes / $arItem['value'];
-				$result = strval( round( $result, 2 ) ) . ' '. $arItem['unit'];
-				break;
-			}
-		}
-		return $result;
-	}
 }
 
 WP_CLI::add_command( 'extract', 'Blog_Extract' );
