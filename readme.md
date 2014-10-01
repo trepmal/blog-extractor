@@ -37,14 +37,27 @@ In setting up the standalone site, a few things need to be done:
   * move the uploads from the /sites/{id}/ directory to the main /uploads/ folder
   * run search-replace again to change those affected URLs
 
+---
+
+Example, if you run
 
 ```
-# update URLs
-wp search-replace old.url new.url
-# move the uploads to the typical directory
-mv wp-content/uploads/sites/<id>/* wp-content/uploads/
-# remove the old directory
-rm -rf wp-content/uploads/sites/
-# update database
-wp search-replace wp-content/uploads/sites/<id>/ wp-content/uploads/
+$ wp extract blog 100
+```
+You'd get something like
+
+```
+> Success: archive-100.tar.gz created! (1.33 MB)
+> In your new install in wp-config.php, set the $table_prefix to wp_100_
+> You'll also need to do a search-replace for the url change
+> =========================================
+> # update URLs
+> wp search-replace ms.dev/montana NEWURL
+> # move the uploads to the typical directory
+> mv wp-content/uploads/sites/100/* wp-content/uploads/
+> # remove the old directory
+> rm -rf wp-content/uploads/sites/
+> # update database
+> wp search-replace wp-content/uploads/sites/100/ wp-content/uploads/
+> =========================================
 ```
