@@ -73,7 +73,7 @@ class Blog_Extract extends WP_CLI_Command {
 		}
 
 		$supes = array_diff( $super_admin_ids, $users );
-		$users = array_unique( array_merge( $users, $super_admin_ids ) );
+		$users = array_filter( array_unique( array_merge( $users, $super_admin_ids ) ) );
 
 		$userlist = implode( ',', $users );
 
