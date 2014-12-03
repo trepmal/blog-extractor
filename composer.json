@@ -1,0 +1,14 @@
+{
+	"name": "trepmal/blog-extractor",
+	"description": "Extract a single blog from a multisite",
+	"homepage": "https://github.com/trepmal/blog-extractor",
+	"license": "MIT",
+	"require": {
+		"php": ">=5.4"
+	},
+	"autoload": {
+		"files": [ "blog-extractor-cli.php" ]
+	}
+}
+
+
