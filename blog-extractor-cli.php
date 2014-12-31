@@ -13,6 +13,12 @@ class Blog_Extract extends WP_CLI_Command {
 	 * <blog-id>
 	 * : ID of blog to extract
 	 *
+	 * [--exclude-archive]
+	 * : Exclude file archive
+	 *
+	 * [--exclude-db]
+	 * : Exclude db export
+	 *
 	 * [--v]
 	 * : Verbose
 	 *
@@ -23,6 +29,7 @@ class Blog_Extract extends WP_CLI_Command {
 	function blog( $args, $assoc_args ) {
 		$v = isset( $assoc_args['v'] );
 
+		// basic checks
 		if ( ! is_multisite() ) {
 			WP_CLI::error( "This is a multisite command only." );
 		}
@@ -31,9 +38,14 @@ class Blog_Extract extends WP_CLI_Command {
 			WP_CLI::error( "Given blog id is invalid." );
 			return;
 		}
+
+		// good to go
+
 		switch_to_blog( $blogid );
 
 		global $wpdb;
+
+		if ( ! isset( $assoc_args['exclude-db'] ) ) :
 
 		$blog_tables = $wpdb->tables('blog');
 
@@ -47,7 +59,7 @@ class Blog_Extract extends WP_CLI_Command {
 
 		/*
 		 * For blog ID 1, we have to use a different temp user table name, since $wpdb->prefix doesn't have a number
-		 * appended and we don't want to effect the global user tables.
+		 * appended and we don't want to affect the global user tables.
 		 */
 		if ( 1 == $blogid ) {
 			$tmp_users = "{$wpdb->prefix}temp_users";
@@ -161,11 +173,16 @@ class Blog_Extract extends WP_CLI_Command {
 			WP_CLI::error( 'There was an error exporting the archive.' );
 		}
 
+		endif; // end if exclude-db
+
 		/************************************\
 		                                FILES
 		\************************************/
 
-		$export_dirs = array( ABSPATH . $sql_file );
+		$export_dirs = array();
+		if ( isset( $sql_file ) ) {
+			$export_dirs[] = ABSPATH . $sql_file;
+		}
 
 		// uploads
 		$upload_dir = wp_upload_dir();
@@ -216,7 +233,7 @@ class Blog_Extract extends WP_CLI_Command {
 		// work out any directories that should be excluded from the archive
 		$exclude = '';
 
-		if ( $blog_1_case ) {
+		if ( isset( $blog_1_case ) && $blog_1_case ) {
 			// if we renamed, we're on site ID 1, which also means uploads aren't in /sites/
 			$exclude_exports[] = str_replace( ABSPATH, '', $upload_dir['basedir'] ) . '/sites';
 		}
@@ -244,7 +261,9 @@ class Blog_Extract extends WP_CLI_Command {
 		if ( file_exists( ABSPATH . $export_file ) ) {
 			if ( ( $filesize = filesize( ABSPATH . $export_file ) ) > 0 ) {
 				// sql dump was archived, remove regular file
-				unlink( ABSPATH . $sql_file );
+				if ( isset( $sql_file ) ) {
+					unlink( ABSPATH . $sql_file );
+				}
 
 				$filesize = size_format( $filesize, 2 );
 				WP_CLI::success( "$export_file created! ($filesize)" );
@@ -258,7 +277,7 @@ class Blog_Extract extends WP_CLI_Command {
 
 				WP_CLI::line( "# update URLs" );
 				WP_CLI::line( "wp search-replace {$old_url} NEWURL" );
-				if ( ! $blog_1_case ) {
+				if ( ! isset( $blog_1_case ) || ! $blog_1_case ) {
 					// again, we're on ID 1, so uploads aren't in sites, so no need for these find-replace recommendations
 					$rel_upl = str_replace( ABSPATH, '', $upload_dir['basedir'] );
 					WP_CLI::line( "# move the uploads to the typical directory" );
