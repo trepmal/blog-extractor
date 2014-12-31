@@ -184,6 +184,8 @@ class Blog_Extract extends WP_CLI_Command {
 			$export_dirs[] = ABSPATH . $sql_file;
 		}
 
+		if ( ! isset( $assoc_args['exclude-archive'] ) ) :
+
 		// uploads
 		$upload_dir = wp_upload_dir();
 		$export_dirs[] = $upload_dir['basedir'];
@@ -222,6 +224,9 @@ class Blog_Extract extends WP_CLI_Command {
 		$themes = array_map( function($i) { return WP_CONTENT_DIR. get_raw_theme_root( get_stylesheet() ) .'/' . $i;}, $themes );
 		$export_dirs = array_merge( $export_dirs, $themes );
 
+
+		endif; // end if --exclude-archive
+
 		// remove ABSPATH. makes the export more friendly when extracted
 		$exports = array_map( function($i) {
 			return '"'. str_replace( ABSPATH, '', $i ) .'"';
@@ -257,6 +262,7 @@ class Blog_Extract extends WP_CLI_Command {
 			WP_CLI::line( 'Begin archiving files' );
 		}
 		shell_exec( "cd {$abspath}; tar -cvf {$export_file} {$exports} {$exclude}" );
+
 
 		if ( file_exists( ABSPATH . $export_file ) ) {
 			if ( ( $filesize = filesize( ABSPATH . $export_file ) ) > 0 ) {
