@@ -39,10 +39,9 @@ class Blog_Extract extends WP_CLI_Command {
 			return;
 		}
 
-		// good to go
+		// no critical errors, let's go!
 
 		$blog_1_case = ( 1 == $blogid ); // just a nice flag to use later
-
 
 		switch_to_blog( $blogid );
 
@@ -185,10 +184,13 @@ class Blog_Extract extends WP_CLI_Command {
 			$export_dirs[] = ABSPATH . $sql_file;
 		}
 
+		// init some vars to ensure they're available
+		$upload_dir = wp_upload_dir();
+		$exclude = '';
+
 		if ( ! isset( $assoc_args['exclude-archive'] ) ) :
 
 			// uploads
-			$upload_dir = wp_upload_dir();
 			$export_dirs[] = $upload_dir['basedir'];
 
 			// plugins
@@ -229,18 +231,15 @@ class Blog_Extract extends WP_CLI_Command {
 
 			// work out any directories that should be excluded from the archive
 			$exclude_exports = array();
-			if ( isset( $blog_1_case ) && $blog_1_case ) {
+			if ( $blog_1_case ) {
 				// if we renamed, we're on site ID 1, which also means uploads aren't in /sites/
 				$exclude_exports[] = str_replace( ABSPATH, '', $upload_dir['basedir'] ) . '/sites';
 			}
 
-			$exclude = '';
 			foreach( $exclude_exports as $ee ) {
 				$exclude .= " --exclude=$ee ";
 			}
-		else :
-			$upload_dir = wp_upload_dir();
-			$exclude = '';
+
 		endif; // end if --exclude-archive
 
 		// remove ABSPATH. makes the export more friendly when extracted
@@ -264,8 +263,8 @@ class Blog_Extract extends WP_CLI_Command {
 		}
 		shell_exec( "cd {$abspath}; tar -cvf {$export_file} {$exports} {$exclude}" );
 
-
 		if ( file_exists( ABSPATH . $export_file ) ) {
+
 			if ( ( $filesize = filesize( ABSPATH . $export_file ) ) > 0 ) {
 				// sql dump was archived, remove regular file
 				if ( isset( $sql_file ) ) {
@@ -277,16 +276,16 @@ class Blog_Extract extends WP_CLI_Command {
 
 				$prefix = WP_CLI::colorize( "%P{$wpdb->prefix}%n" );
 				WP_CLI::line( 'In your new install\'s wp-config.php, set the $table_prefix to '. $prefix );
-				WP_CLI::line( 'You\'ll also need to do a search-replace for the url change' );
 
 				$old_url = untrailingslashit( $details->domain. $details->path );
 				WP_CLI::line( '=========================================' );
 
-				WP_CLI::line( "# update URLs" );
+				WP_CLI::line( "# Optionally, if the site is getting a new URL:" );
 				WP_CLI::line( "wp search-replace {$old_url} NEWURL" );
-				if ( ! isset( $blog_1_case ) || ! $blog_1_case ) {
+				if ( ! $blog_1_case ) {
 					// again, we're on ID 1, so uploads aren't in sites, so no need for these find-replace recommendations
 					$rel_upl = str_replace( ABSPATH, '', $upload_dir['basedir'] );
+					WP_CLI::line( "# You should probably move the uploads directory to the standard single-site location:" );
 					WP_CLI::line( "# move the uploads to the typical directory" );
 					WP_CLI::line( "mv {$rel_upl}/* wp-content/uploads/" );
 					WP_CLI::line( "# remove the old directory" );
@@ -297,11 +296,11 @@ class Blog_Extract extends WP_CLI_Command {
 
 				WP_CLI::line( '=========================================' );
 
-
 			} else {
 				unlink( ABSPATH . $export_file );
 				WP_CLI::error( 'There was an error creating the archive.' );
 			}
+
 		} else {
 			WP_CLI::error( 'Unable to create the archive.' );
 		}
