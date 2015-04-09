@@ -46,6 +46,15 @@ class Blog_Extract extends WP_CLI_Command {
 			$export_file = "archive-{$blogid}.tar.gz";
 		}
 
+		/* check if we can create the archive before going on */
+		if ( file_exists($export_file_path . '/' . $export_file) ) {
+			WP_CLI::error( "File {$export_file_path}/{$export_file} already exists ! Aborting.." );
+		}
+
+		if ( ! is_writeable($export_file_path) ) {
+			WP_CLI::error( "$export_file_path is not writeable ! Aborting.." );
+		}
+
 		if ( $v ) {
 			WP_CLI::line( "Archive will be created at {$export_file_path}/{$export_file}" );
 		}
@@ -213,7 +222,9 @@ class Blog_Extract extends WP_CLI_Command {
 		$export_dirs = array_merge( $export_dirs, $networkplugins );
 
 		// mu plugins
-		$export_dirs[] = ABSPATH . MUPLUGINDIR;
+		if ( is_dir(ABSPATH . MUPLUGINDIR) ) {
+			$export_dirs[] = ABSPATH . MUPLUGINDIR;
+		}
 
 		// mu plugins
 		$dropins = array_keys( get_dropins() );
