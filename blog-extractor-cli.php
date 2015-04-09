@@ -270,7 +270,7 @@ class Blog_Extract extends WP_CLI_Command {
 		if ( $v ) {
 			WP_CLI::line( 'Begin archiving files' );
 		}
-		shell_exec( "cd {$abspath}; tar -cvf {$export_file_path}/{$export_file} {$exports} {$exclude}" );
+		shell_exec( "tar -cf {$export_file_path}/{$export_file} -C {$abspath} {$exports} {$exclude}" );
 
 		if ( file_exists( $export_file_path . '/' . $export_file ) ) {
 			if ( ( $filesize = filesize( $export_file_path . '/' . $export_file ) ) > 0 ) {
