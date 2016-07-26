@@ -73,7 +73,7 @@ class Blog_Extract extends WP_CLI_Command {
 
 		$users = wp_list_pluck( get_users(), 'ID' );
 		$super_admin_ids = array();
-		foreach( get_super_admins() as $username ) {
+		foreach ( get_super_admins() as $username ) {
 			$super_admin_ids[] = get_user_by( 'login', $username )->ID;
 		}
 
@@ -116,11 +116,11 @@ class Blog_Extract extends WP_CLI_Command {
 		}
 
 		// for the super admins that were not specifically added to the blog on the network, give administrator role
-		foreach( $supes as $sid ) {
+		foreach ( $supes as $sid ) {
 			$wpdb->insert( $tmp_usermeta,
 				array(
-					'user_id' => $sid,
-					'meta_key' => $wpdb->prefix .'capabilities',
+					'user_id'    => $sid,
+					'meta_key'   => $wpdb->prefix .'capabilities',
 					'meta_value' => serialize( array( 'administrator' => true ) ),
 				),
 				array(
@@ -224,7 +224,7 @@ class Blog_Extract extends WP_CLI_Command {
 		}
 
 		if ( isset( $exclude_exports ) ) {
-			foreach( $exclude_exports as $ee ) {
+			foreach ( $exclude_exports as $ee ) {
 				$exclude .= " --exclude=$ee ";
 			}
 		}
