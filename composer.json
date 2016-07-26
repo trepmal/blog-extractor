@@ -4,7 +4,7 @@
 	"homepage": "https://github.com/trepmal/blog-extractor",
 	"license": "MIT",
 	"require": {
-		"php": ">=5.4"
+		"php": ">=5.3"
 	},
 	"autoload": {
 		"files": [ "blog-extractor-cli.php" ]
