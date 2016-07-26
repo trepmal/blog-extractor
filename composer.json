@@ -8,7 +8,8 @@
 	},
 	"autoload": {
 		"files": [ "blog-extractor-cli.php" ]
+	},
+	"require-dev": {
+		"behat/behat": "~2.5"
 	}
 }
-
-
