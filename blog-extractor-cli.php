@@ -18,9 +18,13 @@ class Blog_Extract extends WP_CLI_Command {
 	 * [--v]
 	 * : Verbose
 	 *
+	 * [--output]
+	 * : Archive name and path
+	 *
 	 * ## EXAMPLES
 	 *
 	 *     wp extract blog 3
+	 *     wp extract blog 3 --output=/tmp/blog3.tar.gz
 	 */
 	function blog( $args, $assoc_args ) {
 		$v = isset( $assoc_args['v'] );
@@ -29,6 +33,32 @@ class Blog_Extract extends WP_CLI_Command {
 			WP_CLI::error( "This is a multisite command only." );
 		}
 		$blogid = $args[0];
+
+		/* Get the archive name & path */
+		if ( isset( $assoc_args['output'] ) ) {
+			$path_infos = pathinfo($assoc_args['output']);
+
+			$export_file_path = $path_infos['dirname'];
+			$export_file = $path_infos['basename'];
+		}
+		else {
+			$export_file_path = ABSPATH;
+			$export_file = "archive-{$blogid}.tar.gz";
+		}
+
+		/* check if we can create the archive before going on */
+		if ( file_exists($export_file_path . '/' . $export_file) ) {
+			WP_CLI::error( "File {$export_file_path}/{$export_file} already exists ! Aborting.." );
+		}
+
+		if ( ! is_writeable($export_file_path) ) {
+			WP_CLI::error( "$export_file_path is not writeable ! Aborting.." );
+		}
+
+		if ( $v ) {
+			WP_CLI::line( "Archive will be created at {$export_file_path}/{$export_file}" );
+		}
+
 		if ( ! ( $details = get_blog_details( $blogid ) ) ) {
 			WP_CLI::error( "Given blog id is invalid." );
 			return;
@@ -135,14 +165,14 @@ class Blog_Extract extends WP_CLI_Command {
 			WP_CLI::line( 'Begin exporting tables' );
 		}
 		$tablelist = implode( ' ', $blog_tables );
-		$sql_file = 'database.sql';
+		$sql_file = $export_file_path.'/database.sql';
 		shell_exec( "mysqldump -h " . DB_HOST . " -u ". DB_USER ." -p". DB_PASSWORD ." ". DB_NAME ." {$tablelist} > {$sql_file}" );
 
-		if ( file_exists( ABSPATH . $sql_file ) ) {
-			if ( ( $filesize = filesize( ABSPATH . $sql_file ) ) > 0 ) {
+		if ( file_exists( $sql_file ) ) {
+			if ( ( $filesize = filesize( $sql_file ) ) > 0 ) {
 				// Add statements to rename any tables we have in the $rename_tables array
 				if ( $blog_1_case ) {
-					$sql_fh = fopen( ABSPATH . $sql_file, 'a' );
+					$sql_fh = fopen( $sql_file, 'a' );
 					fwrite( $sql_fh, "\n" );
 					foreach ( $rename_tables as $oldname => $newname ) {
 						fwrite( $sql_fh, "RENAME TABLE `{$oldname}` TO `{$newname}`;\n" );
@@ -156,7 +186,7 @@ class Blog_Extract extends WP_CLI_Command {
 				}
 				$wpdb->query( "drop table if exists {$tmp_users}, {$tmp_usermeta}" );
 			} else {
-				unlink( ABSPATH . $sql_file );
+				unlink( $sql_file );
 				WP_CLI::error( 'There was an error exporting the archive.' );
 			}
 		} else {
@@ -167,7 +197,7 @@ class Blog_Extract extends WP_CLI_Command {
 		                                FILES
 		\************************************/
 
-		$export_dirs = array( ABSPATH . $sql_file );
+		$export_dirs = array( $sql_file );
 
 		// uploads
 		$upload_dir = wp_upload_dir();
@@ -192,7 +222,9 @@ class Blog_Extract extends WP_CLI_Command {
 		$export_dirs = array_merge( $export_dirs, $networkplugins );
 
 		// mu plugins
-		$export_dirs[] = ABSPATH . MUPLUGINDIR;
+		if ( is_dir(ABSPATH . MUPLUGINDIR) ) {
+			$export_dirs[] = ABSPATH . MUPLUGINDIR;
+		}
 
 		// mu plugins
 		$dropins = array_keys( get_dropins() );
@@ -232,24 +264,21 @@ class Blog_Extract extends WP_CLI_Command {
 		// @debug let's take a look
 		// print_r( $exclude_exports );
 
-		// @todo make this user-set
-		$export_file = "archive-{$blogid}.tar.gz";
-
 		// GOOD!
 		$abspath = ABSPATH;
 		$exports = implode( ' ', $exports );
 		if ( $v ) {
 			WP_CLI::line( 'Begin archiving files' );
 		}
-		shell_exec( "cd {$abspath}; tar -cvf {$export_file} {$exports} {$exclude}" );
+		shell_exec( "tar -cf {$export_file_path}/{$export_file} -C {$abspath} {$exports} {$exclude}" );
 
-		if ( file_exists( ABSPATH . $export_file ) ) {
-			if ( ( $filesize = filesize( ABSPATH . $export_file ) ) > 0 ) {
+		if ( file_exists( $export_file_path . '/' . $export_file ) ) {
+			if ( ( $filesize = filesize( $export_file_path . '/' . $export_file ) ) > 0 ) {
 				// sql dump was archived, remove regular file
-				unlink( ABSPATH . $sql_file );
+				unlink( $sql_file );
 
 				$filesize = size_format( $filesize, 2 );
-				WP_CLI::success( "$export_file created! ($filesize)" );
+				WP_CLI::success( "$export_file created in $export_file_path! ($filesize)" );
 
 				$prefix = WP_CLI::colorize( "%P{$wpdb->prefix}%n" );
 				WP_CLI::line( 'In your new install in wp-config.php, set the $table_prefix to '. $prefix );
@@ -275,7 +304,7 @@ class Blog_Extract extends WP_CLI_Command {
 
 
 			} else {
-				unlink( ABSPATH . $export_file );
+				unlink( $export_file_path . '/' . $export_file );
 				WP_CLI::error( 'There was an error creating the archive.' );
 			}
 		} else {
