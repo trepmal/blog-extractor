@@ -20,9 +20,9 @@ class Blog_Extract extends WP_CLI_Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp extract blog 3
+	 *     wp extract 3
 	 */
-	function blog( $args, $assoc_args ) {
+	function __invoke( $args, $assoc_args ) {
 		$v = isset( $assoc_args['v'] );
 
 		if ( ! is_multisite() ) {
@@ -261,7 +261,7 @@ class Blog_Extract extends WP_CLI_Command {
 				WP_CLI::line( "# update URLs" );
 				WP_CLI::line( "wp search-replace {$old_url} NEWURL" );
 				if ( ! $blog_1_case ) {
-					// again, we're on ID 1, so uploads aren't in sites, so no need for these find-replace recommendations
+					// again, we're on ID 1, so uploads aren't in /sites/, so no need for these find-replace recommendations
 					$rel_upl = str_replace( ABSPATH, '', $upload_dir['basedir'] );
 					WP_CLI::line( "# move the uploads to the typical directory" );
 					WP_CLI::line( "mv {$rel_upl}/* wp-content/uploads/" );
