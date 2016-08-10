@@ -114,7 +114,11 @@ class Blog_Extract extends WP_CLI_Command {
 			if ( $v ) {
 				WP_CLI::log( 'copying main users table' );
 			}
-			$wpdb->query( "insert into {$tmp_users} select * from {$wpdb->users} where ID IN ({$userlist})" );
+			if ( $userlist ) {
+				$wpdb->query( "insert into {$tmp_users} select * from {$wpdb->users} where ID IN ({$userlist})" );
+			} else {
+				WP_CLI::log( WP_CLI::colorize( "%YNo users were exported. You'll need to create users manually.%n" ) );
+			}
 		}
 
 		$wpdb->query( "create table if not exists {$tmp_usermeta} like {$wpdb->usermeta}" );
@@ -123,7 +127,9 @@ class Blog_Extract extends WP_CLI_Command {
 			if ( $v ) {
 				WP_CLI::log( 'copying main usermeta table' );
 			}
-			$wpdb->query( "insert into {$tmp_usermeta} select * from {$wpdb->usermeta} where user_id IN ({$userlist})" );
+			if ( $userlist ) {
+				$wpdb->query( "insert into {$tmp_usermeta} select * from {$wpdb->usermeta} where user_id IN ({$userlist})" );
+			}
 		}
 
 		// for the super admins that were not specifically added
