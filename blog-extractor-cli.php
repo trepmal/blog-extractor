@@ -147,7 +147,7 @@ class Blog_Extract extends WP_CLI_Command {
 			WP_CLI::log( 'Begin exporting tables' );
 		}
 		$tablelist = implode( ' ', $blog_tables );
-		$sql_file = 'database.sql';
+		$sql_file = "database-{$blogid}.sql";
 		shell_exec( "mysqldump -h " . DB_HOST . " -u ". DB_USER ." -p". DB_PASSWORD ." ". DB_NAME ." {$tablelist} > {$sql_file}" );
 
 		if ( file_exists( ABSPATH . $sql_file ) ) {
@@ -231,13 +231,14 @@ class Blog_Extract extends WP_CLI_Command {
 
 		// work out any directories that should be excluded from the archive
 		$exclude = '';
+		$exclude_exports = array();
 
 		if ( $blog_1_case ) {
 			// if we renamed, we're on site ID 1, which also means uploads aren't in /sites/
 			$exclude_exports[] = str_replace( ABSPATH, '', $upload_dir['basedir'] ) . '/sites';
 		}
 
-		if ( isset( $exclude_exports ) ) {
+		if ( count( $exclude_exports ) > 0 ) {
 			foreach ( $exclude_exports as $ee ) {
 				$exclude .= " --exclude=$ee ";
 			}
