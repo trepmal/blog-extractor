@@ -15,7 +15,7 @@ Install and activate as a normal plugin. Then run `wp help extract` to confirm t
 Extract a single blog from a multisite network. (Does not delete original site)
 
 ```
-wp extract blog <id>
+wp extract <id>
 ```
 
 Creates an tar file in the WordPress root directory. Tar file contains:
@@ -42,7 +42,7 @@ In setting up the standalone site, a few things need to be done:
 Example, if you run
 
 ```
-$ wp extract blog 100
+$ wp extract 100
 ```
 You'd get something like
 
