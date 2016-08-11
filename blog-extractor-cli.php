@@ -20,19 +20,25 @@ class Blog_Extract extends WP_CLI_Command {
 	 *
 	 * ## EXAMPLES
 	 *
-	 *     wp extract blog 3
+	 *     wp extract 3
 	 */
-	function blog( $args, $assoc_args ) {
-		$v = isset( $assoc_args['v'] );
+	function __invoke( $args, $assoc_args ) {
 
+		// verify multisite
 		if ( ! is_multisite() ) {
 			WP_CLI::error( "This is a multisite command only." );
 		}
-		$blogid = $args[0];
+
+		// get args
+		list( $blogid ) = $args;
+		$v = isset( $assoc_args['v'] );
+
+		// verify valid blog id
 		if ( ! ( $details = get_blog_details( $blogid ) ) ) {
 			WP_CLI::error( "Given blog id is invalid." );
 			return;
 		}
+
 		switch_to_blog( $blogid );
 
 		global $wpdb;
@@ -43,19 +49,22 @@ class Blog_Extract extends WP_CLI_Command {
 		                             DATABASE
 		\************************************/
 		 /*
-		  * We use the $rename_tables array to store any tables that will need to renamed upon import to the new database.
+		  * We use the $rename_tables array to store any tables that
+		  * will need to be renamed upon import to the new database.
 		  */
 		$rename_tables = array();
 
 		/*
-		 * For blog ID 1, we have to use a different temp user table name, since $wpdb->prefix doesn't have a number
-		 * appended and we don't want to effect the global user tables.
+		 * For blog ID 1, we have to use a different temp user table name,
+		 * since $wpdb->prefix doesn't have a number appended
+		 * and we don't want to affect the global user tables.
 		 */
 		if ( 1 == $blogid ) {
 			$tmp_users = "{$wpdb->prefix}temp_users";
 			$tmp_usermeta = "{$wpdb->prefix}temp_usermeta";
 
-			// Add these to the rename tables array, so we can rename them when importing to the new database
+			// Add these to the rename_tables array, so we can
+			// rename them when importing to the new database
 			$rename_tables[ $tmp_users ] = "{$wpdb->prefix}users";
 			$rename_tables[ $tmp_usermeta ] = "{$wpdb->prefix}usermeta";
 		} else {
@@ -68,8 +77,8 @@ class Blog_Extract extends WP_CLI_Command {
 		$blog_tables['users'] = $tmp_users;
 		$blog_tables['usermeta'] = $tmp_usermeta;
 
-		// @debug let's take a look
-		// print_r( $blog_tables );
+		// @debug let's take a look at what tables we're archiving
+		WP_CLI::debug( print_r( $blog_tables, true ) );
 
 		$users = wp_list_pluck( get_users(), 'ID' );
 		$super_admin_ids = array();
@@ -83,12 +92,14 @@ class Blog_Extract extends WP_CLI_Command {
 		$userlist = implode( ',', $users );
 
 		if ( $v ) {
-			WP_CLI::line( 'Begin copying user tables' );
+			WP_CLI::log( 'Begin copying user tables' );
 		}
 
 		/*
-		 * Checks if we are attempting to create a temp table with the same name as the main user table. If so, bail.
-		 * Currently happens if attempting to export blog ID 1, since the DB prefix will not have a number appended.
+		 * Checks if we are attempting to create a temp table
+		 * with the same name as the main user table. If so, bail.
+		 * Currently happens if attempting to export blog ID 1,
+		 * since the DB prefix will not have a number appended.
 		 */
 		if ( $tmp_users == $wpdb->users ) {
 			// OMG run away, FAST before we break something important
@@ -101,21 +112,28 @@ class Blog_Extract extends WP_CLI_Command {
 		$check = $wpdb->get_col( "select * from {$tmp_users}" );
 		if ( empty( $check ) ) {
 			if ( $v ) {
-				WP_CLI::line( 'copying main users table' );
+				WP_CLI::log( 'copying main users table' );
 			}
-			$wpdb->query( "insert into {$tmp_users} select * from {$wpdb->users} where ID IN ({$userlist})" );
+			if ( $userlist ) {
+				$wpdb->query( "insert into {$tmp_users} select * from {$wpdb->users} where ID IN ({$userlist})" );
+			} else {
+				WP_CLI::log( WP_CLI::colorize( "%YNo users were exported. You'll need to create users manually.%n" ) );
+			}
 		}
 
 		$wpdb->query( "create table if not exists {$tmp_usermeta} like {$wpdb->usermeta}" );
 		$check = $wpdb->get_col( "select * from {$tmp_usermeta}" );
 		if ( empty( $check ) ) {
 			if ( $v ) {
-				WP_CLI::line( 'copying main usermeta table' );
+				WP_CLI::log( 'copying main usermeta table' );
 			}
-			$wpdb->query( "insert into {$tmp_usermeta} select * from {$wpdb->usermeta} where user_id IN ({$userlist})" );
+			if ( $userlist ) {
+				$wpdb->query( "insert into {$tmp_usermeta} select * from {$wpdb->usermeta} where user_id IN ({$userlist})" );
+			}
 		}
 
-		// for the super admins that were not specifically added to the blog on the network, give administrator role
+		// for the super admins that were not specifically added
+		// to the blog on the network, give administrator role
 		foreach ( $supes as $sid ) {
 			$wpdb->insert( $tmp_usermeta,
 				array(
@@ -132,14 +150,15 @@ class Blog_Extract extends WP_CLI_Command {
 		}
 
 		if ( $v ) {
-			WP_CLI::line( 'Begin exporting tables' );
+			WP_CLI::log( 'Begin exporting tables' );
 		}
 		$tablelist = implode( ' ', $blog_tables );
-		$sql_file = 'database.sql';
+		$sql_file = "database-{$blogid}.sql";
 		shell_exec( "mysqldump -h " . DB_HOST . " -u ". DB_USER ." -p". DB_PASSWORD ." ". DB_NAME ." {$tablelist} > {$sql_file}" );
 
 		if ( file_exists( ABSPATH . $sql_file ) ) {
 			if ( ( $filesize = filesize( ABSPATH . $sql_file ) ) > 0 ) {
+
 				// Add statements to rename any tables we have in the $rename_tables array
 				if ( $blog_1_case ) {
 					$sql_fh = fopen( ABSPATH . $sql_file, 'a' );
@@ -150,11 +169,12 @@ class Blog_Extract extends WP_CLI_Command {
 					fclose( $sql_fh );
 				}
 
-				$filesize = size_format( $filesize, 2 );
 				if ( $v ) {
-					WP_CLI::line( 'Database tables exported' );
+					WP_CLI::log( 'Database tables exported' );
 				}
+
 				$wpdb->query( "drop table if exists {$tmp_users}, {$tmp_usermeta}" );
+
 			} else {
 				unlink( ABSPATH . $sql_file );
 				WP_CLI::error( 'There was an error exporting the archive.' );
@@ -212,25 +232,26 @@ class Blog_Extract extends WP_CLI_Command {
 			return '"'. str_replace( ABSPATH, '', $i ) .'"';
 		}, $export_dirs );
 
-		// @debug let's take a look
-		// print_r( $exports );
+		// @debug let's take a look at what we're archiving
+		WP_CLI::debug( print_r( $exports, true ) );
 
 		// work out any directories that should be excluded from the archive
 		$exclude = '';
+		$exclude_exports = array();
 
 		if ( $blog_1_case ) {
 			// if we renamed, we're on site ID 1, which also means uploads aren't in /sites/
 			$exclude_exports[] = str_replace( ABSPATH, '', $upload_dir['basedir'] ) . '/sites';
 		}
 
-		if ( isset( $exclude_exports ) ) {
+		if ( count( $exclude_exports ) > 0 ) {
 			foreach ( $exclude_exports as $ee ) {
 				$exclude .= " --exclude=$ee ";
 			}
 		}
 
 		// @debug let's take a look
-		// print_r( $exclude_exports );
+		WP_CLI::debug( print_r( $exclude_exports, true ) );
 
 		// @todo make this user-set
 		$export_file = "archive-{$blogid}.tar.gz";
@@ -239,7 +260,7 @@ class Blog_Extract extends WP_CLI_Command {
 		$abspath = ABSPATH;
 		$exports = implode( ' ', $exports );
 		if ( $v ) {
-			WP_CLI::line( 'Begin archiving files' );
+			WP_CLI::log( 'Begin archiving files' );
 		}
 		shell_exec( "cd {$abspath}; tar -cvf {$export_file} {$exports} {$exclude}" );
 
@@ -252,26 +273,26 @@ class Blog_Extract extends WP_CLI_Command {
 				WP_CLI::success( "$export_file created! ($filesize)" );
 
 				$prefix = WP_CLI::colorize( "%P{$wpdb->prefix}%n" );
-				WP_CLI::line( 'In your new install in wp-config.php, set the $table_prefix to '. $prefix );
-				WP_CLI::line( 'You\'ll also need to do a search-replace for the url change' );
+				WP_CLI::log( 'In your new install in wp-config.php, set the $table_prefix to '. $prefix );
+				WP_CLI::log( 'You\'ll also need to do a search-replace for the url change' );
 
 				$old_url = untrailingslashit( $details->domain. $details->path );
-				WP_CLI::line( '=========================================' );
+				WP_CLI::log( '=========================================' );
 
-				WP_CLI::line( "# update URLs" );
-				WP_CLI::line( "wp search-replace {$old_url} NEWURL" );
+				WP_CLI::log( "# update URLs" );
+				WP_CLI::log( "wp search-replace {$old_url} NEWURL" );
 				if ( ! $blog_1_case ) {
-					// again, we're on ID 1, so uploads aren't in sites, so no need for these find-replace recommendations
+					// again, we're on ID 1, so uploads aren't in /sites/, so no need for these find-replace recommendations
 					$rel_upl = str_replace( ABSPATH, '', $upload_dir['basedir'] );
-					WP_CLI::line( "# move the uploads to the typical directory" );
-					WP_CLI::line( "mv {$rel_upl}/* wp-content/uploads/" );
-					WP_CLI::line( "# remove the old directory" );
-					WP_CLI::line( "rm -rf wp-content/uploads/sites/" );
-					WP_CLI::line( "# update database" );
-					WP_CLI::line( "wp search-replace {$rel_upl}/ wp-content/uploads/" );
+					WP_CLI::log( "# move the uploads to the typical directory" );
+					WP_CLI::log( "mv {$rel_upl}/* wp-content/uploads/" );
+					WP_CLI::log( "# remove the old directory" );
+					WP_CLI::log( "rm -rf wp-content/uploads/sites/" );
+					WP_CLI::log( "# update database" );
+					WP_CLI::log( "wp search-replace {$rel_upl}/ wp-content/uploads/" );
 				}
 
-				WP_CLI::line( '=========================================' );
+				WP_CLI::log( '=========================================' );
 
 
 			} else {
