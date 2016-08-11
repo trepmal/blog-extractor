@@ -1,4 +1,4 @@
-# Blog Extractor ![https://travis-ci.org/trepmal/blog-extractor](https://travis-ci.org/trepmal/blog-extractor.svg?branch=master)
+# Blog Extractor [![travis-badge](https://travis-ci.org/trepmal/blog-extractor.svg?branch=master)](https://travis-ci.org/trepmal/blog-extractor)
 
 
 
