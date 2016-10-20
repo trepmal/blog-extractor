@@ -1,6 +1,7 @@
 {
 	"name": "trepmal/blog-extractor",
 	"description": "Extract a single blog from a multisite",
+	"type": "wp-cli-package",
 	"homepage": "https://github.com/trepmal/blog-extractor",
 	"license": "MIT",
 	"require": {
