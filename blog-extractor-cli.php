@@ -31,7 +31,7 @@ class Blog_Extract extends WP_CLI_Command {
 
 		// get args
 		list( $blogid ) = $args;
-		$v = isset( $assoc_args['v'] );
+		$v = \WP_CLI\Utils\get_flag_value( $assoc_args, 'v', false );
 
 		// verify valid blog id
 		if ( ! ( $details = get_blog_details( $blogid ) ) ) {
@@ -278,21 +278,22 @@ class Blog_Extract extends WP_CLI_Command {
 
 				$old_url = untrailingslashit( $details->domain. $details->path );
 				WP_CLI::log( '=========================================' );
+				WP_CLI::log( 'Example commands to get you up and running again:' . WP_CLI::colorize( '%G' ) );
 
 				WP_CLI::log( "# update URLs" );
 				WP_CLI::log( "wp search-replace {$old_url} NEWURL" );
 				if ( ! $blog_1_case ) {
 					// again, we're on ID 1, so uploads aren't in /sites/, so no need for these find-replace recommendations
-					$rel_upl = str_replace( ABSPATH, '', $upload_dir['basedir'] );
+					$rel_upl = trailingslashit( str_replace( ABSPATH, '', $upload_dir['basedir'] ) );
 					WP_CLI::log( "# move the uploads to the typical directory" );
-					WP_CLI::log( "mv {$rel_upl}/* wp-content/uploads/" );
+					WP_CLI::log( "mv {$rel_upl}* wp-content/uploads/" );
 					WP_CLI::log( "# remove the old directory" );
 					WP_CLI::log( "rm -rf wp-content/uploads/sites/" );
 					WP_CLI::log( "# update database" );
-					WP_CLI::log( "wp search-replace {$rel_upl}/ wp-content/uploads/" );
+					WP_CLI::log( "wp search-replace {$rel_upl} wp-content/uploads/" );
 				}
 
-				WP_CLI::log( '=========================================' );
+				WP_CLI::log( WP_CLI::colorize( '%n' ) . '===The End===============================' );
 
 
 			} else {
