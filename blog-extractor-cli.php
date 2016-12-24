@@ -45,6 +45,14 @@ class Blog_Extract extends WP_CLI_Command {
 
 		$blog_tables = $wpdb->tables('blog');
 
+		// here we look for additional tables that may have been added by plugins
+		$extra_tables = $wpdb->get_col( "SHOW TABLES LIKE '{$wpdb->prefix}%'" );
+		$extra_tables = array_diff( $extra_tables, $blog_tables );
+		foreach ( $extra_tables as $et ) {
+			$blog_tables[ substr( $et, strlen( $wpdb->prefix ) ) ] = $et;
+		}
+		unset( $extra_tables );
+
 		/************************************\
 		                             DATABASE
 		\************************************/
