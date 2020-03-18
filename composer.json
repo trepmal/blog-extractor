@@ -4,13 +4,46 @@
 	"type": "wp-cli-package",
 	"homepage": "https://github.com/trepmal/blog-extractor",
 	"license": "MIT",
-	"require": {
-		"php": ">=5.3"
+	"authors": [
+		{
+			"name": "Kailey Lampert",
+			"email": "trepmal@gmail.com"
+		}
+	],
+	"minimum-stability": "dev",
+	"extra": {
+		"branch-alias": {
+			"dev-master": "1.x-dev"
+		},
+		"bundled": false,
+		"commands": [
+			"extract"
+		]
 	},
 	"autoload": {
-		"files": [ "blog-extractor-cli.php" ]
+		"files": [ "blog-extractor.php" ]
 	},
 	"require-dev": {
-		"behat/behat": "~2.5"
+		"wp-cli/wp-cli-tests": "^2.0.7"
+	},
+	"require": {
+		"ext-json": "*",
+		"wp-cli/wp-cli": "^2.1",
+		"wp-cli/entity-command": "^2.1",
+		"wp-cli/db-command": "^2.1"
+	},
+	"scripts": {
+		"behat": "run-behat-tests",
+		"behat-rerun": "rerun-behat-tests",
+		"lint": "run-linter-tests",
+		"phpcs": "run-phpcs-tests",
+		"phpunit": "run-php-unit-tests",
+		"prepare-tests": "install-package-tests",
+		"test": [
+			"@lint",
+			"@phpcs",
+			"@phpunit",
+			"@behat"
+		]
 	}
 }

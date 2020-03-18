@@ -1,7 +1,4 @@
 <?php
-
-if ( !defined( 'WP_CLI' ) ) return;
-
 /**
  * Blog Extract
  */
@@ -315,5 +312,3 @@ class Blog_Extract extends WP_CLI_Command {
 	}
 
 }
-
-WP_CLI::add_command( 'extract', 'Blog_Extract' );

@@ -11,7 +11,7 @@ Feature: Extract single site from multisite
     When I run `wp db tables | wc -l`
     Then STDOUT should be:
       """
-      19
+      18
       """
 
   Scenario: Extract non-existent site
@@ -38,5 +38,5 @@ Feature: Extract single site from multisite
     When I run `wp db tables --url={HOME_URL}/newsite | wc -l`
     Then STDOUT should be:
       """
-      19
+      18
       """
