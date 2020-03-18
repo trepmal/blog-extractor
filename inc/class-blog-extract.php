@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Blog Extract
  */
@@ -159,7 +160,19 @@ class Blog_Extract extends WP_CLI_Command {
 		}
 		$tablelist = implode( ' ', $blog_tables );
 		$sql_file = "database-{$blogid}.sql";
-		shell_exec( "mysqldump -h " . DB_HOST . " -u ". DB_USER ." -p". DB_PASSWORD ." ". DB_NAME ." {$tablelist} > {$sql_file}" );
+
+		$cmd = \WP_CLI\Utils\esc_cmd( '/usr/bin/env mysqldump --no-defaults %s ' . $tablelist,
+			DB_NAME
+		);
+
+		$creds = array(
+			'host'        => DB_HOST,
+			'user'        => DB_USER,
+			'pass'        => DB_PASSWORD,
+			'result-file' => $sql_file
+		);
+
+		\WP_CLI\Utils\run_mysql_command( $cmd, $creds );
 
 		if ( file_exists( ABSPATH . $sql_file ) ) {
 			if ( ( $filesize = filesize( ABSPATH . $sql_file ) ) > 0 ) {
